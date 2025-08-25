@@ -14,15 +14,15 @@ export interface SocioTitularRegistration {
   fechaNacimiento: string;
   celular: string;
 
-  // 2. Housing Installation Information (Datos de Instalación de Vivienda)
-  direccionVivienda: string;
-  mz: string;
-  lote: string;
-  ubicacionReferencia: string;
-  localidad: string;
-  distritoVivienda: string;
-  provinciaVivienda: string;
-  regionVivienda: string;
+  // 2. Housing Installation Information (Datos de Instalación de Vivienda) - Ahora opcionales
+  direccionVivienda?: string;
+  mz?: string;
+  lote?: string;
+  ubicacionReferencia?: string;
+  localidad?: string;
+  distritoVivienda?: string;
+  provinciaVivienda?: string;
+  regionVivienda?: string;
 
   // 3. Economic Situation of the Socio Titular (Situación Económica del Socio Titular)
   situacionEconomica: EconomicSituation;

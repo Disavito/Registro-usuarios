@@ -1,5 +1,5 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
-import { User, Home, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { User, Home, DollarSign } from 'lucide-react'; // Eliminado CheckCircle y XCircle
 import { SocioTitularRegistration, EconomicSituation } from '../types/form';
 import { ECONOMIC_SITUATIONS } from '../data/constants';
 import { supabase } from '../lib/supabaseClient';
@@ -17,6 +17,7 @@ const initialFormData: SocioTitularRegistration = {
   regionDNI: '',
   fechaNacimiento: '',
   celular: '',
+  // Los campos de vivienda se inicializan como cadenas vacías, aunque son opcionales
   direccionVivienda: '',
   mz: '',
   lote: '',
@@ -32,9 +33,10 @@ const SocioTitularForm: React.FC = () => {
   const [formData, setFormData] = useState<SocioTitularRegistration>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoadingDni, setIsLoadingDni] = useState<boolean>(false); // Nuevo estado para la carga del DNI
-  const [isEditingExisting, setIsEditingExisting] = useState<boolean>(false); // Nuevo estado para saber si estamos editando
+  const [isLoadingDni, setIsLoadingDni] = useState<boolean>(false);
+  const [isEditingExisting, setIsEditingExisting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'personal' | 'housing'>('personal'); // Nuevo estado para las pestañas
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -56,7 +58,7 @@ const SocioTitularForm: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Información Personal
+    // Información Personal (todos son requeridos)
     if (!formData.nombres) newErrors.nombres = 'Nombres es requerido.';
     if (!formData.apellidoPaterno) newErrors.apellidoPaterno = 'Apellido Paterno es requerido.';
     if (!formData.apellidoMaterno) newErrors.apellidoMaterno = 'Apellido Materno es requerido.';
@@ -69,14 +71,9 @@ const SocioTitularForm: React.FC = () => {
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(formData.fechaNacimiento)) newErrors.fechaNacimiento = 'Fecha de Nacimiento debe ser DD/MM/YYYY.';
     if (!/^\d{9}$/.test(formData.celular)) newErrors.celular = 'Celular debe ser 9 dígitos numéricos.';
 
-    // Información de Instalación de Vivienda
-    if (!formData.direccionVivienda) newErrors.direccionVivienda = 'Dirección (Vivienda) es requerida.';
-    if (!formData.mz) newErrors.mz = 'MZ (Manzana) es requerida.';
-    if (!formData.lote) newErrors.lote = 'Lote es requerido.';
-    if (!formData.localidad) newErrors.localidad = 'Localidad es requerida.';
-    if (!formData.distritoVivienda) newErrors.distritoVivienda = 'Distrito (Vivienda) es requerido.';
-    if (!formData.provinciaVivienda) newErrors.provinciaVivienda = 'Provincia (Vivienda) es requerida.';
-    if (!formData.regionVivienda) newErrors.regionVivienda = 'Región (Vivienda) es requerida.';
+    // Información de Instalación de Vivienda (ahora son opcionales, no se validan aquí)
+    // Si se desea validar que si se ingresa uno, se ingresen otros, se podría añadir lógica aquí.
+    // Por ahora, se asume que son completamente opcionales.
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -181,7 +178,7 @@ const SocioTitularForm: React.FC = () => {
   };
 
   // Lógica de pago condicional: solo 'Extremo Pobre' está exonerado
-  const isPaymentExonerated = formData.situacionEconomica === 'Extremo Pobre';
+  // const isPaymentExonerated = formData.situacionEconomica === 'Extremo Pobre'; // Se mantiene la lógica, pero se elimina la visualización
 
   const renderInputField = (
     label: string,
@@ -189,26 +186,27 @@ const SocioTitularForm: React.FC = () => {
     type: string = 'text',
     placeholder: string = '',
     pattern?: string,
-    onBlurHandler?: () => void // Nuevo prop para manejar onBlur
+    onBlurHandler?: () => void,
+    isRequired: boolean = true // Nuevo prop para indicar si el campo es requerido
   ) => (
     <div className="mb-4">
       <label htmlFor={name} className="block text-textSecondary text-sm font-medium mb-2">
-        {label}
+        {label} {isRequired ? <span className="text-error">*</span> : <span className="text-textSecondary text-opacity-70">(Opcional)</span>}
       </label>
-      <div className="relative"> {/* Añadido relative para el spinner de carga */}
+      <div className="relative">
         <input
           type={type}
           id={name}
           name={name}
           value={formData[name] as string | number}
           onChange={handleChange}
-          onBlur={onBlurHandler} // Usar el manejador onBlur si se proporciona
+          onBlur={onBlurHandler}
           placeholder={placeholder}
           pattern={pattern}
           className={`w-full px-4 py-2 bg-surface border ${errors[name] ? 'border-error' : 'border-border'} rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200`}
-          required
+          required={isRequired} // Usar el nuevo prop
         />
-        {name === 'dni' && isLoadingDni && ( // Spinner de carga condicional para el DNI
+        {name === 'dni' && isLoadingDni && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-textSecondary text-sm">
             Buscando...
           </span>
@@ -239,47 +237,79 @@ const SocioTitularForm: React.FC = () => {
 
       <main className="container mx-auto px-4 py-12">
         <form onSubmit={handleSubmit} className="bg-surface p-8 md:p-12 rounded-2xl shadow-xl max-w-4xl mx-auto border border-border">
-          {/* Información Personal */}
-          <section className="mb-10 pb-8 border-b border-border animate-fade-in">
-            <h2 className="text-3xl font-bold text-primary mb-6 flex items-center">
-              <User className="mr-3 text-accent" size={32} /> Datos Personales
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderInputField('Nombres', 'nombres', 'text', 'Ej: Juan Carlos')}
-              {renderInputField('Apellido Paterno', 'apellidoPaterno', 'text', 'Ej: García')}
-              {renderInputField('Apellido Materno', 'apellidoMaterno', 'text', 'Ej: Pérez')}
-              {renderInputField('Edad', 'edad', 'number', 'Ej: 35')}
-              {renderInputField('DNI', 'dni', 'text', 'Ej: 12345678', '\\d{8}', handleDniBlur)} {/* DNI con onBlur */}
-              {renderInputField('Dirección de DNI', 'direccionDNI', 'text', 'Ej: Av. Los Girasoles 123')}
-              {renderInputField('Región (DNI)', 'regionDNI', 'text', 'Ej: Lima')}
-              {renderInputField('Provincia (DNI)', 'provinciaDNI', 'text', 'Ej: Lima')}
-              {renderInputField('Distrito (DNI)', 'distritoDNI', 'text', 'Ej: Miraflores')}
-              {renderInputField('Fecha de Nacimiento', 'fechaNacimiento', 'text', 'DD/MM/YYYY', '\\d{2}/\\d{2}/\\d{4}')}
-              {renderInputField('Celular', 'celular', 'text', 'Ej: 987654321', '\\d{9}')}
+          {/* Navegación por Pestañas */}
+          <div className="mb-8 border-b border-border">
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={() => setActiveTab('personal')}
+                className={`px-6 py-3 text-lg font-semibold rounded-t-lg transition-all duration-200 ${
+                  activeTab === 'personal'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-surface text-textSecondary hover:bg-surface/70'
+                }`}
+              >
+                Datos Personales
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('housing')}
+                className={`px-6 py-3 text-lg font-semibold rounded-t-lg transition-all duration-200 ${
+                  activeTab === 'housing'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-surface text-textSecondary hover:bg-surface/70'
+                }`}
+              >
+                Datos de Vivienda
+              </button>
             </div>
-          </section>
+          </div>
 
-          {/* Información de Instalación de Vivienda */}
-          <section className="mb-10 pb-8 border-b border-border animate-fade-in delay-100">
-            <h2 className="text-3xl font-bold text-primary mb-6 flex items-center">
-              <Home className="mr-3 text-accent" size={32} /> Datos de Instalación de Vivienda
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderInputField('Dirección (Vivienda)', 'direccionVivienda', 'text', 'Ej: Calle Las Flores 456')}
-              {renderInputField('MZ (Manzana)', 'mz', 'text', 'Ej: A')}
-              {renderInputField('Lote', 'lote', 'text', 'Ej: 15')}
-              {renderInputField('Ubicación (Referencia)', 'ubicacionReferencia', 'text', 'Ej: Frente al parque')}
-              {renderInputField('Localidad', 'localidad', 'text', 'Ej: San Juan')}
-              {renderInputField('Región (Vivienda)', 'regionVivienda', 'text', 'Ej: Lima')}
-              {renderInputField('Provincia (Vivienda)', 'provinciaVivienda', 'text', 'Ej: Lima')}
-              {renderInputField('Distrito (Vivienda)', 'distritoVivienda', 'text', 'Ej: San Juan de Lurigancho')}
-            </div>
-          </section>
+          {/* Contenido de la Pestaña: Datos Personales */}
+          {activeTab === 'personal' && (
+            <section className="mb-10 pb-8 animate-fade-in"> {/* Eliminado border-b y delay */}
+              <h2 className="text-3xl font-bold text-primary mb-6 flex items-center">
+                <User className="mr-3 text-accent" size={32} /> Datos Personales
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderInputField('Nombres', 'nombres', 'text', 'Ej: Juan Carlos')}
+                {renderInputField('Apellido Paterno', 'apellidoPaterno', 'text', 'Ej: García')}
+                {renderInputField('Apellido Materno', 'apellidoMaterno', 'text', 'Ej: Pérez')}
+                {renderInputField('Edad', 'edad', 'number', 'Ej: 35')}
+                {renderInputField('DNI', 'dni', 'text', 'Ej: 12345678', '\\d{8}', handleDniBlur)}
+                {renderInputField('Dirección de DNI', 'direccionDNI', 'text', 'Ej: Av. Los Girasoles 123')}
+                {renderInputField('Región (DNI)', 'regionDNI', 'text', 'Ej: Lima')}
+                {renderInputField('Provincia (DNI)', 'provinciaDNI', 'text', 'Ej: Lima')}
+                {renderInputField('Distrito (DNI)', 'distritoDNI', 'text', 'Ej: Miraflores')}
+                {renderInputField('Fecha de Nacimiento', 'fechaNacimiento', 'text', 'DD/MM/YYYY', '\\d{2}/\\d{2}/\\d{4}')}
+                {renderInputField('Celular', 'celular', 'text', 'Ej: 987654321', '\\d{9}')}
+              </div>
+            </section>
+          )}
 
-          {/* Situación Económica y Lógica de Pago */}
-          <section className="mb-10 pb-8 border-b border-border animate-fade-in delay-200">
+          {/* Contenido de la Pestaña: Datos de Instalación de Vivienda */}
+          {activeTab === 'housing' && (
+            <section className="mb-10 pb-8 animate-fade-in"> {/* Eliminado border-b y delay */}
+              <h2 className="text-3xl font-bold text-primary mb-6 flex items-center">
+                <Home className="mr-3 text-accent" size={32} /> Datos de Instalación de Vivienda
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderInputField('Dirección (Vivienda)', 'direccionVivienda', 'text', 'Ej: Calle Las Flores 456', undefined, undefined, false)}
+                {renderInputField('MZ (Manzana)', 'mz', 'text', 'Ej: A', undefined, undefined, false)}
+                {renderInputField('Lote', 'lote', 'text', 'Ej: 15', undefined, undefined, false)}
+                {renderInputField('Ubicación (Referencia)', 'ubicacionReferencia', 'text', 'Ej: Frente al parque', undefined, undefined, false)}
+                {renderInputField('Localidad', 'localidad', 'text', 'Ej: San Juan', undefined, undefined, false)}
+                {renderInputField('Región (Vivienda)', 'regionVivienda', 'text', 'Ej: Lima', undefined, undefined, false)}
+                {renderInputField('Provincia (Vivienda)', 'provinciaVivienda', 'text', 'Ej: Lima', undefined, undefined, false)}
+                {renderInputField('Distrito (Vivienda)', 'distritoVivienda', 'text', 'Ej: San Juan de Lurigancho', undefined, undefined, false)}
+              </div>
+            </section>
+          )}
+
+          {/* Situación Económica y Lógica de Pago (siempre visible, debajo de las pestañas) */}
+          <section className="mb-10 pb-8 border-b border-border animate-fade-in delay-100"> {/* Ajustado delay */}
             <h2 className="text-3xl font-bold text-primary mb-6 flex items-center">
-              <DollarSign className="mr-3 text-accent" size={32} /> Situación Económica y Pago
+              <DollarSign className="mr-3 text-accent" size={32} /> Situación Económica
             </h2>
             <div className="mb-6">
               <label className="block text-textSecondary text-sm font-medium mb-2">
@@ -301,28 +331,7 @@ const SocioTitularForm: React.FC = () => {
                 ))}
               </div>
             </div>
-
-            <div className={`p-6 rounded-xl transition-all duration-300 ease-in-out ${
-              isPaymentExonerated
-                ? 'bg-success/20 border border-success text-success'
-                : 'bg-warning/20 border border-warning text-warning'
-            }`}>
-              <div className="flex items-center">
-                {isPaymentExonerated ? (
-                  <CheckCircle className="mr-3" size={24} />
-                ) : (
-                  <XCircle className="mr-3" size={24} />
-                )}
-                <p className="font-semibold text-lg">
-                  {isPaymentExonerated
-                    ? '¡Pago Exonerado! No se requiere el pago de S/250.00.'
-                    : 'Pago Requerido: Se requiere el pago de S/250.00.'}
-                </p>
-              </div>
-              <p className="mt-2 text-sm text-textSecondary">
-                La exoneración se aplica automáticamente si la situación económica es 'Extremo Pobre'.
-              </p>
-            </div>
+            {/* Se ha eliminado el bloque de texto de "Pago Exonerado" / "Pago Requerido" */}
           </section>
 
           {/* Botón de Envío y Mensajes */}

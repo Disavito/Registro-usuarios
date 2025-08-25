@@ -7,17 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#9E7FFF',
-        secondary: '#38bdf8',
-        accent: '#f472b6',
-        background: '#171717',
-        surface: '#262626',
-        text: '#FFFFFF',
-        textSecondary: '#A3A3A3',
-        border: '#2F2F2F',
-        success: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
+        // Paleta de colores profesional (fondo blanco, texto oscuro)
+        background: '#FFFFFF', // Fondo principal blanco
+        surface: '#F8F8F8',    // Superficies de componentes (ej. formulario) un gris muy claro
+        text: '#171717',       // Texto principal negro/gris muy oscuro
+        textSecondary: '#525252', // Texto secundario gris oscuro
+        border: '#E5E5E5',     // Bordes claros
+        
+        // Nuevos colores de acento: Verde y Azul
+        primary: '#10B981',    // Verde vibrante (anteriormente success)
+        secondary: '#38bdf8',  // Azul cielo (se mantiene)
+        accent: '#22D3EE',     // Cian/Azul claro para detalles
+        success: '#059669',    // Verde más oscuro para mensajes de éxito
+        warning: '#f59e0b',    // Naranja para advertencia (se mantiene)
+        error: '#ef4444',      // Rojo para error (se mantiene)
       },
       borderRadius: {
         '2xl': '16px', // Custom rounded-2xl for 16px radius

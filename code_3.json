@@ -1,0 +1,16 @@
+{
+    "success": true,
+    "message": "Successful response",
+    "data": {
+        "number": "00000000",
+        "full_name": "Nombre completo",
+        "name": "Solo el nombre",
+        "surname": "Solo apellidos",
+        "date_of_birth": "2005-03-31",
+        "department": "Departamento",
+        "province": "Provincia",
+        "district": "Distrito",
+        "address": "Dirección",
+        "ubigeo": "000000"
+    }
+}
